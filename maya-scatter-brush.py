@@ -8,12 +8,27 @@ def get_maya_main_window():
     ptr = omui.MQtUtil.mainWindow()
     return wrapInstance(int(ptr), QtWidgets.QMainWindow)
 
-def show()
+def show():
     mw  = get_maya_main_window()
     win = QtWidgets.QDockWidget("Scatter Brush Tool", parent=mw)
+
+    root = QtWidgets.QWidget()
+    layout = QtWidgets.QVBoxLayout(root)
+
+    label  = QtWidgets.QLabel("Scatter Brush Tool")
+    button = QtWidgets.QPushButton("Click Me")
+    slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+
+    layout.addWidget(label)
+    layout.addWidget(button)
+    layout.addWidget(slider)
+
+    win.setWidget(root)
+
     mw.addDockWidget(QtCore.Qt.RightDockWidgetArea, win)
     win.show()
-    
+
+show()
 
 #create tool/pointer
 #return
