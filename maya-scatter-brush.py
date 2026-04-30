@@ -1,4 +1,20 @@
+import maya.OpenMayaUI as omui
+from PySide6 import QtWidgets, QtCore
+from shiboken6 import wrapInstance
+
+
 #create maya window
+def get_maya_main_window():
+    ptr = omui.MQtUtil.mainWindow()
+    return wrapInstance(int(ptr), QtWidgets.QMainWindow)
+
+def show()
+    mw  = get_maya_main_window()
+    win = QtWidgets.QDockWidget("Scatter Brush Tool", parent=mw)
+    mw.addDockWidget(QtCore.Qt.RightDockWidgetArea, win)
+    win.show()
+    
+
 #create tool/pointer
 #return
 
