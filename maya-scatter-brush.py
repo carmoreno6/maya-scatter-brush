@@ -15,16 +15,61 @@ def show():
     root = QtWidgets.QWidget()
     layout = QtWidgets.QVBoxLayout(root)
 
-    label  = QtWidgets.QLabel("Scatter Brush Tool")
-    button = QtWidgets.QPushButton("Click Me")
-    slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+    #status
+    status_lbl = QtWidgets.QLabel("● Brush inactive")
+    status_lbl.setAlignment(QtCore.Qt.AlignCenter)
+    layout.addWidget(status_lbl)
 
-    layout.addWidget(label)
-    layout.addWidget(button)
-    layout.addWidget(slider)
+    # paint and erase buttons side by side
+    mode_row  = QtWidgets.QHBoxLayout()
+    paint_btn = QtWidgets.QPushButton("Paint")
+    erase_btn = QtWidgets.QPushButton("Erase")
+    paint_btn.setCheckable(True)
+    erase_btn.setCheckable(True)
+    paint_btn.setChecked(True)
+    mode_row.addWidget(paint_btn)
+    mode_row.addWidget(erase_btn)
+    layout.addLayout(mode_row)
+
+    #activate
+    activate_btn = QtWidgets.QPushButton("Activate Brush")
+    activate_btn.setCheckable(True)
+    layout.addWidget(activate_btn)
+
+    #scroll 
+    scroll    = QtWidgets.QScrollArea()
+    scroll.setWidgetResizable(True)
+    scroll_widget = QtWidgets.QWidget()
+    scroll_layout = QtWidgets.QVBoxLayout(scroll_widget)
+    scroll.setWidget(scroll_widget)
+    layout.addWidget(scroll)
+
+    #source objects
+    src_group  = QtWidgets.QGroupBox("Source Objects")
+    src_layout = QtWidgets.QVBoxLayout(src_group)
+
+    source_list = QtWidgets.QListWidget()
+    source_list.setSelectionMode(
+        QtWidgets.QAbstractItemView.MultiSelection)
+    source_list.setFixedHeight(90)
+    src_layout.addWidget(source_list)
+
+    hint = QtWidgets.QLabel("Select objects in viewport then click Add")
+    src_layout.addWidget(hint)
+
+    # add, refresh, remove buttons
+    src_btn_row = QtWidgets.QHBoxLayout()
+    add_btn     = QtWidgets.QPushButton("+ Add Sel")
+    refresh_btn = QtWidgets.QPushButton("Refresh")
+    remove_btn  = QtWidgets.QPushButton("Remove")
+    src_btn_row.addWidget(add_btn)
+    src_btn_row.addWidget(refresh_btn)
+    src_btn_row.addWidget(remove_btn)
+    src_layout.addLayout(src_btn_row)
+
+    scroll_layout.addWidget(src_group)
 
     win.setWidget(root)
-
     mw.addDockWidget(QtCore.Qt.RightDockWidgetArea, win)
     win.show()
 
