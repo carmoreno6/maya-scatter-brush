@@ -72,6 +72,15 @@ def show():
     win.setWidget(root)
     mw.addDockWidget(QtCore.Qt.RightDockWidgetArea, win)
     win.show()
+    
+    #brush settings
+    brush_group  = QtWidgets.QGroupBox("Brush Settings")
+    brush_layout = QtWidgets.QVBoxLayout(brush_group)
+    radius_slider  = LabelledSlider("Radius",  1, 150, 30)
+    density_slider = LabelledSlider("Density", 1,  20,  3)
+    brush_layout.addWidget(radius_slider)
+    brush_layout.addWidget(density_slider)
+    scroll_layout.addWidget(brush_group)
 
 show()
 
