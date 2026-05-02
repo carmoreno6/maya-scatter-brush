@@ -81,7 +81,42 @@ def show():
     brush_layout.addWidget(radius_slider)
     brush_layout.addWidget(density_slider)
     scroll_layout.addWidget(brush_group)
+    
+    #randomization section
+    rand_group  = QtWidgets.QGroupBox("Randomization")
+    rand_layout = QtWidgets.QVBoxLayout(rand_group)
+    scale_min_slider = LabelledSlider("Scale Min", 1, 50,  8)
+    scale_max_slider = LabelledSlider("Scale Max", 1, 50, 15)
+    offset_slider    = LabelledSlider("Offset",    0, 100, 20)
+    rand_layout.addWidget(scale_min_slider)
+    rand_layout.addWidget(scale_max_slider)
+    rand_layout.addWidget(offset_slider)
 
+    #rotation checkboxes
+    rand_layout.addWidget(QtWidgets.QLabel("Random Rotation Axes:"))
+    rot_row   = QtWidgets.QHBoxLayout()
+    rot_x_cb  = QtWidgets.QCheckBox("X")
+    rot_y_cb  = QtWidgets.QCheckBox("Y")
+    rot_z_cb  = QtWidgets.QCheckBox("Z")
+    rot_y_cb.setChecked(True)
+    rot_row.addWidget(rot_x_cb)
+    rot_row.addWidget(rot_y_cb)
+    rot_row.addWidget(rot_z_cb)
+    rot_row.addStretch()
+    rand_layout.addLayout(rot_row)
+
+    # align to normal checkbox
+    align_cb = QtWidgets.QCheckBox("Align to Surface Normal")
+    align_cb.setChecked(True)
+    rand_layout.addWidget(align_cb)
+    scroll_layout.addWidget(rand_group)
+
+    scroll_layout.addStretch()
+
+    win.setWidget(root)
+    mw.addDockWidget(QtCore.Qt.RightDockWidgetArea, win)
+    win.show()
+    
 show()
 
 #create tool/pointer
