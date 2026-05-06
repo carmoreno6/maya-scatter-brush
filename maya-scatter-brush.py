@@ -1,11 +1,115 @@
 import maya.OpenMayaUI as omui
 import maya.cmds as cmds
+import maya.OpenMaya as om
 from PySide6 import QtWidgets, QtCore
 from shiboken6 import wrapInstance
 
 def get_maya_main_window():
     ptr = omui.MQtUtil.mainWindow()
     return wrapInstance(int(ptr), QtWidgets.QMainWindow)
+
+def get_mesh_hit(screen_x, screen_y):
+    # get the active viewport and shoot a ray through the screen position
+    view       = omui.M3dView.active3dView()
+    ray_origin = om.MPoint()
+    ray_dir    = om.MVector()
+    view.viewToWorld(int(screen_x), int(screen_y), ray_origin, ray_dir)
+
+    # convert to float versions for closestIntersection
+    ray_o = om.MFloatPoint(ray_origin.x, ray_origin.y, ray_origin.z)
+    ray_d = om.MFloatVector(ray_dir.x,   ray_dir.y,   ray_dir.z)
+
+    closest_dist   = float("inf")
+    closest_point  = None
+    closest_normal = om.MVector(0, 1, 0)
+
+    # loop through every mesh in the scene
+    dag_iter = om.MItDag(om.MItDag.kDepthFirst, om.MFn.kMesh)
+    while not dag_iter.isDone():
+        dag_path = om.MDagPath()
+        dag_iter.getPath(dag_path)
+        try:
+            mesh_fn = om.MFnMesh(dag_path)
+            if mesh_fn.isIntermediateObject():
+                dag_iter.next()
+                continue
+
+            hit_pt   = om.MFloatPoint()
+            util     = om.MScriptUtil()
+            util.createFromInt(0)
+            face_ptr = util.asIntPtr()
+
+            hit = mesh_fn.closestIntersection(
+                ray_o, ray_d, None, None, False,
+                om.MSpace.kWorld, 99999, False, None,
+                hit_pt, None, face_ptr, None, None, None
+            )
+
+            if hit:
+                dist = ray_o.distanceTo(hit_pt)
+                if dist < closest_dist:
+                    closest_dist  = dist
+                    closest_point = om.MPoint(hit_pt.x, hit_pt.y, hit_pt.z)
+                    face_idx = util.getInt(face_ptr)
+                    norms    = om.MFloatVectorArray()
+                    mesh_fn.getFaceVertexNormals(
+                        face_idx, norms, om.MSpace.kWorld)
+                    if norms.length() > 0:
+                        n = norms[0]
+                        closest_normal = om.MVector(n.x, n.y, n.z).normal()
+        except Exception:
+            pass
+        dag_iter.next()
+
+    return closest_point, closest_normal
+
+SCATTER_GROUP = "scatter_grp"
+DRAG_CTX      = "scatterBrushDraggerCtx"
+
+_ui_ref = None
+
+def _ctx_press():
+    _run_brush()
+
+def _ctx_drag():
+    _run_brush()
+
+def _run_brush():
+    ui = _ui_ref
+    if ui is None:
+        return
+
+    # get screen coordinates from the dragger context
+    ax, ay = cmds.draggerContext(DRAG_CTX, q=True, anchorPoint=True)[:2]
+    dx, dy = cmds.draggerContext(DRAG_CTX, q=True, dragPoint=True)[:2]
+    sx = dx if dx != 0 else ax
+    sy = dy if dy != 0 else ay
+
+    # cast a ray and find the hit point
+    hit_point, hit_normal = get_mesh_hit(sx, sy)
+    if hit_point is None:
+        print("no hit")
+        return
+
+    print("hit at", hit_point.x, hit_point.y, hit_point.z)
+
+def activate_context():
+    if cmds.draggerContext(DRAG_CTX, exists=True):
+        cmds.deleteUI(DRAG_CTX)
+    cmds.draggerContext(
+        DRAG_CTX,
+        pressCommand = "_ctx_press()",
+        dragCommand  = "_ctx_drag()",
+        cursor       = "crossHair",
+        undoMode     = "step",
+    )
+    cmds.setToolTo(DRAG_CTX)
+
+def deactivate_context():
+    cmds.setToolTo("selectSuperContext")
+    if cmds.draggerContext(DRAG_CTX, exists=True):
+        cmds.deleteUI(DRAG_CTX)
+
 
 class LabelledSlider(QtWidgets.QWidget):
     def __init__(self, label, lo, hi, default, parent=None):
@@ -208,11 +312,6 @@ def show():
 show()
 
 
-
-#create tool/pointer
-
-
-#return
 
 #ray cast setup
 #viewport pointing
