@@ -258,17 +258,17 @@ class ScatterBrushUI(QtWidgets.QDockWidget):
         self.erase_btn.setChecked(mode == "erase")
 
     def _toggle_brush(self, active):
-    global _ui_ref
-    if active:
-        _ui_ref = self
-        activate_context()
-        self.activate_btn.setText("Deactivate Brush")
-        self.status_lbl.setText("● ACTIVE — click/drag on any mesh")
-    else:
-        deactivate_context()
-        self.activate_btn.setText("Activate Brush")
-        self.activate_btn.setChecked(False)
-        self.status_lbl.setText("● Brush inactive")
+        global _ui_ref
+        if active:
+            _ui_ref = self
+            activate_context()
+            self.activate_btn.setText("Deactivate Brush")
+            self.status_lbl.setText("● ACTIVE — click/drag on any mesh")
+        else:
+            deactivate_context()
+            self.activate_btn.setText("Activate Brush")
+            self.activate_btn.setChecked(False)
+            self.status_lbl.setText("● Brush inactive")
 
     def _add_sel(self):
         sel = cmds.ls(selection=True, long=False) or []
