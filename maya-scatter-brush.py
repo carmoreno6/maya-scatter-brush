@@ -65,6 +65,50 @@ def get_mesh_hit(screen_x, screen_y):
 
     return closest_point, closest_normal
 
+def scatter_instance(source_objects, hit_point, hit_normal,
+                     radius, scale_min, scale_max,
+                     rot_x, rot_y, rot_z,
+                     offset_range, align_to_normal):
+    if not source_objects:
+        return
+    source = random.choice(source_objects)
+    if not cmds.objExists(source):
+        return
+
+    angle = random.uniform(0, 2 * math.pi)
+    r     = random.uniform(0, radius)
+    dx    = math.cos(angle) * r + random.uniform(-offset_range, offset_range)
+    dz    = math.sin(angle) * r + random.uniform(-offset_range, offset_range)
+    dy    = random.uniform(-offset_range * 0.05, offset_range * 0.05)
+
+    pos = [hit_point.x + dx, hit_point.y + dy, hit_point.z + dz]
+
+    inst = cmds.instance(source, name=source + "_scatter#")[0]
+
+    s = random.uniform(scale_min, scale_max)
+    cmds.setAttr(inst + ".scale", s, s, s, type="double3")
+
+    rx = random.uniform(-180, 180) if rot_x else 0
+    ry = random.uniform(-180, 180) if rot_y else 0
+    rz = random.uniform(-180, 180) if rot_z else 0
+
+    if align_to_normal and hit_normal:
+        up    = om.MVector(0, 1, 0)
+        cross = up ^ hit_normal
+        if cross.length() > 0.001:
+            cross.normalize()
+            ang = math.degrees(math.acos(max(-1.0, min(1.0, up * hit_normal))))
+            rx += cross.x * ang
+            ry += cross.y * ang
+            rz += cross.z * ang
+
+    cmds.setAttr(inst + ".rotate", rx, ry, rz, type="double3")
+    cmds.setAttr(inst + ".translate", *pos, type="double3")
+
+    if not cmds.objExists(SCATTER_GROUP):
+        cmds.group(empty=True, name=SCATTER_GROUP)
+    cmds.parent(inst, SCATTER_GROUP)
+
 SCATTER_GROUP = "scatter_grp"
 DRAG_CTX      = "scatterBrushDraggerCtx"
 
@@ -81,19 +125,37 @@ def _run_brush():
     if ui is None:
         return
 
-    # get screen coordinates from the dragger context
     ax, ay = cmds.draggerContext(DRAG_CTX, q=True, anchorPoint=True)[:2]
     dx, dy = cmds.draggerContext(DRAG_CTX, q=True, dragPoint=True)[:2]
     sx = dx if dx != 0 else ax
     sy = dy if dy != 0 else ay
 
-    # cast a ray and find the hit point
     hit_point, hit_normal = get_mesh_hit(sx, sy)
     if hit_point is None:
-        print("no hit")
         return
 
-    print("hit at", hit_point.x, hit_point.y, hit_point.z)
+    if ui.mode == "erase":
+        ui.erase_near(hit_point, ui.radius_slider.value() * 0.05)
+        return
+
+    sources = ui.get_selected_sources()
+    if not sources:
+        cmds.warning("Add source objects to the list first.")
+        return
+
+    for _ in range(ui.density_slider.value()):
+        scatter_instance(
+            source_objects  = sources,
+            hit_point       = hit_point,
+            hit_normal      = hit_normal,
+            radius          = ui.radius_slider.value() * 0.05,
+            scale_min       = ui.scale_min_slider.value() * 0.1,
+            scale_max       = ui.scale_max_slider.value() * 0.1,
+            rot_x           = ui.rot_x_cb.isChecked(),
+            rot_y           = ui.rot_y_cb.isChecked(),
+            rot_z           = ui.rot_z_cb.isChecked(),
+            offset_range    = ui.offset_slider.value() * 0.005,
+            align_to_normal = ui.align_cb.isChecked(),
 
 def activate_context():
     if cmds.draggerContext(DRAG_CTX, exists=True):
@@ -353,6 +415,28 @@ class ScatterBrushUI(QtWidgets.QDockWidget):
             return [i.text() for i in sel]
         return [self.source_list.item(i).text()
                 for i in range(self.source_list.count())]
+        
+    def erase_near(self, hit_point, radius):
+        if not cmds.objExists(SCATTER_GROUP):
+            return
+        for child in cmds.listRelatives(SCATTER_GROUP, children=True) or []:
+            p = cmds.xform(child, q=True, ws=True, translation=True)
+            d = math.sqrt((p[0]-hit_point.x)**2 +
+                          (p[1]-hit_point.y)**2 +
+                          (p[2]-hit_point.z)**2)
+            if d <= radius:
+                cmds.delete(child)
+
+    def get_selected_sources(self):
+        sel = self.source_list.selectedItems()
+        if sel:
+            return [i.text() for i in sel]
+        return [self.source_list.item(i).text()
+                for i in range(self.source_list.count())]
+
+    def closeEvent(self, event):
+        deactivate_context()
+        super().closeEvent(event)
 
 
 def show():
