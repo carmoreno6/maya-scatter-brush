@@ -65,6 +65,7 @@ def get_mesh_hit(screen_x, screen_y):
 
     return closest_point, closest_normal
 
+
 def scatter_instance(source_objects, hit_point, hit_normal,
                      radius, scale_min, scale_max,
                      rot_x, rot_y, rot_z,
@@ -75,6 +76,7 @@ def scatter_instance(source_objects, hit_point, hit_normal,
     if not cmds.objExists(source):
         return
 
+    # random position within brush radius
     angle = random.uniform(0, 2 * math.pi)
     r     = random.uniform(0, radius)
     dx    = math.cos(angle) * r + random.uniform(-offset_range, offset_range)
@@ -83,6 +85,7 @@ def scatter_instance(source_objects, hit_point, hit_normal,
 
     pos = [hit_point.x + dx, hit_point.y + dy, hit_point.z + dz]
 
+    # create instance and apply transforms
     inst = cmds.instance(source, name=source + "_scatter#")[0]
 
     s = random.uniform(scale_min, scale_max)
@@ -108,6 +111,7 @@ def scatter_instance(source_objects, hit_point, hit_normal,
     if not cmds.objExists(SCATTER_GROUP):
         cmds.group(empty=True, name=SCATTER_GROUP)
     cmds.parent(inst, SCATTER_GROUP)
+
 
 SCATTER_GROUP = "scatter_grp"
 DRAG_CTX      = "scatterBrushDraggerCtx"
@@ -156,6 +160,7 @@ def _run_brush():
             rot_z           = ui.rot_z_cb.isChecked(),
             offset_range    = ui.offset_slider.value() * 0.005,
             align_to_normal = ui.align_cb.isChecked(),
+        )
 
 def activate_context():
     if cmds.draggerContext(DRAG_CTX, exists=True):
@@ -174,51 +179,6 @@ def deactivate_context():
     if cmds.draggerContext(DRAG_CTX, exists=True):
         cmds.deleteUI(DRAG_CTX)
 
-def scatter_instance(source_objects, hit_point, hit_normal,
-                     radius, scale_min, scale_max,
-                     rot_x, rot_y, rot_z,
-                     offset_range, align_to_normal):
-    if not source_objects:
-        return
-    source = random.choice(source_objects)
-    if not cmds.objExists(source):
-        return
-
-    # random position within brush radius
-    angle = random.uniform(0, 2 * math.pi)
-    r     = random.uniform(0, radius)
-    dx    = math.cos(angle) * r + random.uniform(-offset_range, offset_range)
-    dz    = math.sin(angle) * r + random.uniform(-offset_range, offset_range)
-    dy    = random.uniform(-offset_range * 0.05, offset_range * 0.05)
-
-    pos = [hit_point.x + dx, hit_point.y + dy, hit_point.z + dz]
-
-    # create instance and apply transforms
-    inst = cmds.instance(source, name=source + "_scatter#")[0]
-
-    s = random.uniform(scale_min, scale_max)
-    cmds.setAttr(inst + ".scale", s, s, s, type="double3")
-
-    rx = random.uniform(-180, 180) if rot_x else 0
-    ry = random.uniform(-180, 180) if rot_y else 0
-    rz = random.uniform(-180, 180) if rot_z else 0
-
-    if align_to_normal and hit_normal:
-        up    = om.MVector(0, 1, 0)
-        cross = up ^ hit_normal
-        if cross.length() > 0.001:
-            cross.normalize()
-            ang = math.degrees(math.acos(max(-1.0, min(1.0, up * hit_normal))))
-            rx += cross.x * ang
-            ry += cross.y * ang
-            rz += cross.z * ang
-
-    cmds.setAttr(inst + ".rotate", rx, ry, rz, type="double3")
-    cmds.setAttr(inst + ".translate", *pos, type="double3")
-
-    if not cmds.objExists(SCATTER_GROUP):
-        cmds.group(empty=True, name=SCATTER_GROUP)
-    cmds.parent(inst, SCATTER_GROUP)
 
 class LabelledSlider(QtWidgets.QWidget):
     def __init__(self, label, lo, hi, default, parent=None):
@@ -409,13 +369,6 @@ class ScatterBrushUI(QtWidgets.QDockWidget):
                 if kids:
                     cmds.delete(kids)
 
-    def get_selected_sources(self):
-        sel = self.source_list.selectedItems()
-        if sel:
-            return [i.text() for i in sel]
-        return [self.source_list.item(i).text()
-                for i in range(self.source_list.count())]
-        
     def erase_near(self, hit_point, radius):
         if not cmds.objExists(SCATTER_GROUP):
             return
