@@ -1,10 +1,13 @@
 import maya.OpenMayaUI as omui
 import maya.cmds as cmds
 import maya.OpenMaya as om
+import maya.mel as mel
 from PySide6 import QtWidgets, QtCore
 from shiboken6 import wrapInstance
 import math
 import random
+import os
+import shutil
 
 def get_maya_main_window():
     ptr = omui.MQtUtil.mainWindow()
